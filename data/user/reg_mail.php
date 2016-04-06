@@ -1,7 +1,7 @@
 <?php
-$db->sql_query("SELECT * FROM mail_reg");
-
-$row = $db->sql_fetcharray();
+	
+	$r = $mysqli->query( "SELECT * FROM mail_reg" );
+	$row = $r->fetch_assoc();
 	
 
 	$subject  = "بازدید آپ - اطلاعات کاربری";
