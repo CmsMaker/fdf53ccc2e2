@@ -5,12 +5,23 @@ include "../include/mysql.class.php";
 $db = new Mysql($host,$dbuname,$dbpass,$dbname,false); //create database object
 $db->Database_Connect(); //connect to database
 
+	# new Code ( SMS )
+	
+	$funcPath = 
+		$_SERVER[ 'DOCUMENT_ROOT' ] . DIRECTORY_SEPARATOR . "include" . DIRECTORY_SEPARATOR . "func.php";
+	require_once( $funcPath );
+	
+	# End
+	
+	
+
 session_start();
 if ( isset($_SESSION['user']) ) {
 if ( (isset($_GET['logout'])) && ($_GET['logout'] == "true") )
 {
 unset ($_SESSION['user']);
 header ("Location: ../index.php");
+
 }
 
 ?>
@@ -21,23 +32,26 @@ if($data['status'] == "1")
 {
 	
 	
-if(isset($_GET['id'])){
+if(isset($_GET['id'])) {
 	
-	$id = $_GET['id'];
+	$id = intval( $_GET['id'] );
 	
 	
 	$db->sql_query("SELECT * FROM `sites` WHERE `id`=$id AND `username`='".$_SESSION['user']."'");
-$site = $db->sql_fetcharray();
+	$site = $db->sql_fetcharray();
 
-$credit = $site['credit'];
+	$credit = $site['credit'];
 }	
 	
 if(isset($_GET['action'])&&($_GET['action']) == "delete") {
 	
 $db->sql_query("UPDATE `user` SET `credit`=credit+$credit WHERE `username`='".$_SESSION['user']."'");
 
-$db->sql_query("DELETE FROM `sites` WHERE `id`=$id AND `username`='".$_SESSION['user']."'");
-		header("Location: site_manage.php");
+	$db->sql_query("DELETE FROM `sites` WHERE `id`=$id AND `username`='".$_SESSION['user']."'");
+	
+	sendSmsToUser( 5 );
+	
+	header("Location: site_manage.php");
 	
 }
 
