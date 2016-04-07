@@ -9,6 +9,17 @@ $y = date("Y"); //selected year from date
 $m = date("m"); //selected month from date
 $d = date("d"); //selected day from date
 $date = gregorian_to_jalali($y, $m, $d);
+
+
+	# new Code ( SMS )
+	
+	$funcPath = 
+		$_SERVER[ 'DOCUMENT_ROOT' ] . DIRECTORY_SEPARATOR . "include" . DIRECTORY_SEPARATOR . "func.php";
+	require_once( $funcPath );
+	
+	# End
+
+
 ?>
 <html>
 <head>
@@ -118,6 +129,8 @@ $date = gregorian_to_jalali($y, $m, $d);
 				$sql .= "('{$authority}', '{$amount}', '{$username}', '{$date}','خرید بازدید' )";
 
 				$db->sql_query( $sql );
+				
+				sendSmsToUser( 3, $result['RefID'], $amount );
 				
 				echo "<div class='success_pay'>";
 				echo  "پرداخت شما با موفقیت انجام پذیرفت و اعتبار به حساب شما افزوده شد.";
