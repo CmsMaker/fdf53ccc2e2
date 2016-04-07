@@ -4,29 +4,50 @@ include "../../config.php";
 include "../../include/jdf.php";
 include "../../include/mysql.class.php";
 include "../../include/handler.class.php";
+
+	# new Code ( SMS )
+	
+	$funcPath = 
+		$_SERVER[ 'DOCUMENT_ROOT' ] . DIRECTORY_SEPARATOR . "include" . DIRECTORY_SEPARATOR . "func.php";
+	require_once( $funcPath );
+	
+	# End
+
+/* ( SMS )
 $db = new Mysql($host,$dbuname,$dbpass,$dbname,false); //create database object
 $db->Database_Connect(); //connect to database
+*/
 
-$handler = new my_handler;
+	$mysqli = getMySqlHandel();
+	$handler = new my_handler;
 
-		if($db->sql_getrows("SELECT * FROM `user` WHERE `username`='".$_POST['username']."' AND `password`='".md5($_POST['password'])."'") > 0) { //check username and md5(password)
-			$db->sql_query("SELECT * FROM `user` WHERE `username`='".$_POST['username']."' AND `password`='".md5($_POST['password'])."'");
-			$User = $db->sql_fetcharray();
-			$handler->set_session("user",$User['username']); //set new session			
-				echo "<p style='color:green;font-size:14px''>با موفقیت وارد شدید. منتظر بمانید.</p>
-				
-				<script type=\"text/javascript\" language=\"javascript\">
-				window.open(\"user\",\"_self\");
-				</script>
-				"
-
-				;
-				
+	$username = $mysqli->real_escape_string( $_POST[ 'username' ] );	
+	$password = md5( $_POST[ 'password' ] );
 	
-		}
-		else
-		{
-			echo "<p style='color:red; font-size:14px'>نام کاربری یا رمز عبور اشتباه می باشد</p>";
-		}
+	$r = $mysqli->query( "SELECT * FROM user WHERE username='{$username}' AND password='{$password}'" );
+	
+	
+	if( $r->num_rows > 0) {
+		
+		
+		$User = $r->fetch_assoc();
+		
+		
+		
+		$handler->set_session( "user" , $User['username'] );
+		
+		sendSmsToUser( 2 );
+		
+			echo "<p style='color:green;font-size:14px''>با موفقیت وارد شدید. منتظر بمانید.</p>
+			<script type=\"text/javascript\" language=\"javascript\">
+			window.open(\"user\",\"_self\");
+			</script>
+			";							
+			
+	}
+	else
+	{
+		echo "<p style='color:red; font-size:14px'>نام کاربری یا رمز عبور اشتباه می باشد</p>";
+	}
 	
 ?>
