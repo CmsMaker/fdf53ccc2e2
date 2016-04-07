@@ -1,35 +1,72 @@
 <?php
-session_start();
-	if(isset($_SESSION['user'])) {
-include "../config.php";
-include "../include/jdf.php";
-include "../include/mysql.class.php";
 
-$ip = $_SERVER['REMOTE_ADDR'];
-$db = new Mysql($host,$dbuname,$dbpass,$dbname,false);
-$db->Database_Connect();
-function send($url,$api,$amount,$redirect){
-$ch = curl_init();
-curl_setopt($ch,CURLOPT_URL,$url);
-curl_setopt($ch,CURLOPT_POSTFIELDS,"api=$api&amount=$amount&redirect=$redirect");
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-$res = curl_exec($ch);
-curl_close($ch);
-return $res;
-}
-$url = 'http://payline.ir/payment/gateway-send';
-$api = $payline;
-$amount = $_POST['amount'];
-$redirect = "$link/user/result_payment.php";
-	
-$result = send($url,$api,$amount,$redirect);
-if($result > 0 && is_numeric($result)){
-	$db->sql_query("INSERT INTO `pay_info` (id_get,trans_id,amount,username,status,ip) VALUES 
-	('$result','0', '$amount', '{$_SESSION['user']}','0','$ip')");
-$go = "http://payline.ir/payment/gateway-$result";
+	session_start();
 
-header("Location: $go");
-}
+	if( isset( $_SESSION['user'] ) ) {
+		
+		include "../config.php";
+		include "../include/jdf.php";
+		include "../include/mysql.class.php";
+		
+		// new line
+		include "../include/nusoap.php";
+		// end 
+		
+		
+		$db = new Mysql( $host,$dbuname,$dbpass,$dbname,false );
+		$db->Database_Connect();
+		
+		
+		
+		// new Line
+		
+		$db->sql_query( "SELECT email, mobile FROM user WHERE username='" . $_SESSION['user'] . "' " );
+		
+		$info = $db-> sql_fetcharray();
+		
+		$email = $info[ 'email' ];
+		$mobile = $info[ 'mobile' ];
+		
+		$amount = intval( $_POST['amount'] );
+		$amount /= 10;
+		
+		$callback = "$link/user/result_payment.php";
+		
+		$client = new nusoap_client('https://de.zarinpal.com/pg/services/WebGate/wsdl', 'wsdl'); 
+		$client->soap_defencoding = 'UTF-8';
+		
+		$result = $client->call('PaymentRequest', array(
+			array(
+					'MerchantID' 	=> $payline,
+					'Amount' 		=> $amount,
+					'Description' 	=> "افزایش اعتبار",
+					'Email' 		=> $email,
+					'Mobile' 		=> $mobile,
+					'CallbackURL' 	=> $callback
+				)
+			)
+		);
+		
+		if($result['Status'] == 100) {
+			
+			$ip = mysql_real_escape_string ( $_SERVER['REMOTE_ADDR'] );
+			$authority = mysql_real_escape_string( $result['Authority'] );
+			
+			$amount *= 10;
+			
+			$sql  = "INSERT INTO pay_info ( id_get, trans_id, amount, username, status, ip ) ";
+			$sql .= "VALUES ( '$authority', '0', '$amount', '" . $_SESSION[ 'user' ] . "', '0', '$ip' )";
+			
+			$db->sql_query( $sql );
+			
+			Header('Location: https://www.zarinpal.com/pg/StartPay/'.$result['Authority']);
+			exit();
+			
+		} else {
+			echo'ERR: '.$result['Status'];
+		}
+		
+		// end 
+		
 	}
 ?>

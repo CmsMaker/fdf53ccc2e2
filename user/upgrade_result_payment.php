@@ -1,5 +1,5 @@
 <?php
-
+session_start();
 include "../config.php";
 include "../include/jdf.php";
 include "../include/mysql.class.php";
@@ -9,8 +9,13 @@ $y = date("Y"); //selected year from date
 $m = date("m"); //selected month from date
 $d = date("d"); //selected day from date
 $date = gregorian_to_jalali($y, $m, $d);
-	
-	?>
+if( !isset( $_SESSION['user'] ) ) {
+	die();
+}	
+?>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <style type="text/css">
 .error_pay {
 	margin-top:300px;
@@ -53,65 +58,99 @@ $date = gregorian_to_jalali($y, $m, $d);
 	color:#090;
 }
 </style>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head>
+<body>
 <?php
 
-function get($url,$api,$trans_id,$id_get){
-$ch = curl_init();
-curl_setopt($ch,CURLOPT_URL,$url);
-curl_setopt($ch,CURLOPT_POSTFIELDS,"api=$api&id_get=$id_get&trans_id=$trans_id");
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
-$res = curl_exec($ch);
-curl_close($ch);
-return $res;
-}
+	include "../include/nusoap.php";
+	
+	$authority = mysql_real_escape_string ( $_GET['Authority'] );
 
-$trans_id = $_POST['trans_id'];
-$id_get = $_POST['id_get'];
+	$db->sql_query( "SELECT * FROM pay_info WHERE id_get='{$authority}'");
+	$payinfo  = $db->sql_fetcharray();
+	
+	$amount = $payinfo[ 'amount' ];
+	$username   = $payinfo[ 'username' ];
 
-$db->sql_query("SELECT * FROM `pay_info` WHERE `id_get`='{$id_get}'");
- $pay_amount  = $db-> sql_fetcharray();
- $amount = $pay_amount['amount'];
- 	  
-$url = 'http://payline.ir/payment/gateway-result-second';
-$api = $payline;
-$result = get($url,$api,$trans_id,$id_get);
-	if($db->sql_getrows("SELECT * FROM `pays` WHERE `fish`='$trans_id'") > 0){
-	 echo "<div class='error_pay'>پرداخت شما نامعتبر می باشد.
-	 </div>";
-	}
-	elseif($result == 1){
+	if( !isset( $amount ) ) {
 		
-		if($amount == $level_silver_cost){
+		echo "<div class='error_pay'>عملیات شما نامعتبر می باشد.<br><a href='index.php'>بازگشت</a></div>";
+		
+	} else if( $db->sql_getrows( "SELECT * FROM `pays` WHERE `fish`='$authority'" ) > 0  ) {
+		
+		echo  "<div class='error_pay'>پرداخت شما ثبت شده است.<br><a href='index.php'>بازگشت</a></div>";
+		
+	} else {
+		
+		if( $_GET['Status'] == 'OK' ) {
 			
-			$level = "2";
-			$level_name = "نقره ای";
+			$amount = intval( $amount );
+			$amount /= 10;
 			
-		}elseif($amount == $level_golden_cost){
+			$client = new nusoap_client('https://de.zarinpal.com/pg/services/WebGate/wsdl', 'wsdl'); 
+			$client->soap_defencoding = 'UTF-8';
 			
-			$level = "3";	
-			$level_name = "طلایی";
+			$result = $client->call('PaymentVerification', array(
+				array(
+						'MerchantID'	 => $payline,
+						'Authority' 	 => $authority,
+						'Amount'	 	 => $amount
+					)
+				)
+			);
+			
+			if($result['Status'] == 100){
+				
+				$amount *= 10;
+				
+				if( $amount == $level_silver_cost ){
+					
+					$level = "2";
+					$level_name = "نقره ای";
+					
+				} else if ( $amount == $level_golden_cost ){
+					
+					$level = "3";	
+					$level_name = "طلایی";
+					
+				}
+				
+				$timestamp = time() + (86400*30);
+				
+				$db->sql_query( "UPDATE user SET level=$level, level_timestamp=$timestamp WHERE username='$username'");
+				
+				
+				$amount /= 10;
+				
+				$dis = "ارتقاء سطح کاربری به " . $level_name;
+				$sql  = "INSERT INTO pays (fish, amount, username, date, type) VALUES ";
+				$sql .= "('{$authority}', '{$amount}', '{$username}', '{$date}', '{$dis}')";
+
+				$db->sql_query( $sql );
+				
+				echo  "<div class='success_pay'>";
+				echo  "پرداخت شما با موفقیت انجام پذیرفت و سطح کاربری شما به سطح $level_name ارتقا یافت.";
+				echo  "<br>";
+				echo  "شماره پیگیری: " . $result['RefID'];
+				echo  "<br>";
+				echo 	"برای مشاهده فیش، به صفحه سوابق شارژ حساب مراجعه نمائید.";
+				echo  "<br>";
+				echo  "<a href='index.php'>بازگشت</a>";
+				echo 	"</div>";
+
+			} else {
+				
+				echo  "<div class='error_pay'>پرداخت شما نامعتبر می باشد.<br><a href='index.php'>بازگشت</a></div>";
+				
+			}
+			
+		} else {
+			
+			echo "<div class='error_pay'>عملیات شما نامعتبر می باشد.<br><a href='index.php'>بازگشت</a></div>";
 			
 		}
-		$timestamp = time() + (86400*30);
-	$db->sql_query("UPDATE `user` SET `level`=$level,`level_timestamp`=$timestamp WHERE `username`='".$pay_amount['username']."'");
-
-				$db->sql_query("INSERT INTO `pays` (fish,amount,username,date,type) VALUES 
-	('$trans_id', '$amount', '".$pay_amount['username']."', '$date','ازتقاء سطح کاربری به $level_name')");
-
-echo "<div class='success_pay'>پرداخت شما با موفقیت انجام پذیرفت و سطح کاربری شما به سطح $level_name ارتقا یافت. </div>";
-
-
-
-
-
-
-
-	} 
-	else {
-echo  "<div class='error_pay'>عملیات شما نامعتبر می باشد.
-	 </div>";
+		
 	}
- 
 ?>
+ </body>
+ </html>
