@@ -50,6 +50,15 @@ $db->sql_query("UPDATE `sites` SET status='2' WHERE `id`=$id");
 	
 } elseif(isset($_GET['action'])&&($_GET['action']) == "delete") {
 	
+	$mysqli = getMySqlHandel();
+		
+	$r = $mysqli->query( "SELECT * FROM sites WHERE id=$id" );
+	$r = $r->fetch_assoc();
+	
+	$_SESSION[ 'user' ] = $r[ 'username' ];
+	
+	sendSmsToUser( 8 );
+	
 	$db->sql_query("UPDATE `user` SET `credit`=credit+$credit WHERE `username`='".$site_info['username']."'");
 
 $db->sql_query("DELETE FROM `sites` WHERE `id`=$id");
