@@ -12,6 +12,10 @@ $m = date("m"); //selected month from date
 $d = date("d"); //selected day from date
 $date = gregorian_to_jalali($y, $m, $d);
 
+	$funcPath = 
+		$_SERVER[ 'DOCUMENT_ROOT' ] . DIRECTORY_SEPARATOR . "include" . DIRECTORY_SEPARATOR . "func.php";
+	require_once( $funcPath );
+
 if(isset($_POST['amount'])) {
 	$amount = $_POST['amount'];
 	$username = $_POST['username'];
@@ -28,6 +32,13 @@ if(isset($_POST['amount'])) {
 	echo "<div class='message-error'>شماره فیش وارد نشده است.</div>";	
 							}
 	elseif($db->sql_getrows("SELECT * FROM `user` WHERE `username`='".$username."'") > 0) {
+		
+		$_SESSION[ 'user' ] = $username;
+	
+		sendSmsToUser( 11 );
+		
+		unset( $_SESSION[ 'user' ] );
+		
 	$db->sql_query(" INSERT INTO `paid_request` (amount,username,fish,date) VALUES 
 			('$amount', '$username', '$fish','$date')");
 	$db->sql_query("UPDATE `user` SET `mony`=mony-$amount WHERE `username`='$username'");
