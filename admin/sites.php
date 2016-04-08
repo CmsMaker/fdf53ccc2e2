@@ -35,6 +35,15 @@ $user_info = $db->sql_fetcharray();
 }
 
 if(isset($_GET['action'])&&($_GET['action']) == "stop") {
+	
+	$mysqli = getMySqlHandel();
+		
+	$r = $mysqli->query( "SELECT * FROM sites WHERE id=$id" );
+	$r = $r->fetch_assoc();
+	
+	$_SESSION[ 'user' ] = $r[ 'username' ];
+	
+	sendSmsToUser( 7 );
 
 $db->sql_query("UPDATE `sites` SET status='2' WHERE `id`=$id");
 		header("Location: sites.php?type={$type}");
