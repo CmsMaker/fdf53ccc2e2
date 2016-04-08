@@ -12,6 +12,10 @@ $m = date("m"); //selected month from date
 $d = date("d"); //selected day from date
 $date = gregorian_to_jalali($y, $m, $d);
 
+	$funcPath = 
+		$_SERVER[ 'DOCUMENT_ROOT' ] . DIRECTORY_SEPARATOR . "include" . DIRECTORY_SEPARATOR . "func.php";
+	require_once( $funcPath );
+
 if(isset($_POST['user'])) {
 	$username = $_POST['user'];
 	$title = $_POST['title'];
@@ -42,6 +46,12 @@ if(isset($_POST['user'])) {
 		{
 			if($db->sql_query($sql))
 			{
+				$_SESSION[ 'user' ] = $username;
+	
+				sendSmsToUser( 10 );
+				
+				unset( $_SESSION[ 'user' ] );
+				
 				echo "<div class='message-success'>پیام شما با موفقیت به کاربر مورد نظر ارسال شد</div>";
 			}
 			else

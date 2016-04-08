@@ -44,6 +44,8 @@ if(isset($_GET['action'])&&($_GET['action']) == "stop") {
 	$_SESSION[ 'user' ] = $r[ 'username' ];
 	
 	sendSmsToUser( 7 );
+	
+	unset( $_SESSION[ 'user' ] );
 
 $db->sql_query("UPDATE `sites` SET status='2' WHERE `id`=$id");
 		header("Location: sites.php?type={$type}");
@@ -58,6 +60,8 @@ $db->sql_query("UPDATE `sites` SET status='2' WHERE `id`=$id");
 	$_SESSION[ 'user' ] = $r[ 'username' ];
 	
 	sendSmsToUser( 8 );
+	
+	unset( $_SESSION[ 'user' ] );
 	
 	$db->sql_query("UPDATE `user` SET `credit`=credit+$credit WHERE `username`='".$site_info['username']."'");
 
