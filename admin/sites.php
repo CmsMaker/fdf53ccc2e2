@@ -13,13 +13,17 @@ unset ($_SESSION['admin']);
 header ("Location: ../index.php");
 }
 
+	$funcPath = 
+		$_SERVER[ 'DOCUMENT_ROOT' ] . DIRECTORY_SEPARATOR . "include" . DIRECTORY_SEPARATOR . "func.php";
+	require_once( $funcPath );
+
  $db->sql_query ("SELECT * FROM `admin` WHERE `username`='".$_SESSION['admin']."'");
 $data = $db->sql_fetcharray();
 
 
 if(isset($_GET['id'])){
 	
-	$id = $_GET['id'];
+	$id = intval($_GET['id']);
 	$type = $_GET['type'];
 	
 	$db->sql_query("SELECT * FROM `sites` WHERE `id`=$id");
@@ -44,8 +48,19 @@ $db->sql_query("DELETE FROM `sites` WHERE `id`=$id");
 	
 }elseif(isset($_GET['action'])&&($_GET['action']) == "active") {
 
-$db->sql_query("UPDATE `sites` SET status='1' WHERE `id`=$id");
-
+		$db->sql_query("UPDATE `sites` SET status='1' WHERE `id`=$id");
+		
+		$mysqli = getMySqlHandel();
+		
+		$r = $mysqli->query( "SELECT * FROM sites WHERE id=$id" );
+		$r = $r->fetch_assoc();
+		
+		$_SESSION[ 'user' ] = $r[ 'username' ];
+		
+		sendSmsToUser( 6 );
+		
+		unset( $_SESSION[ 'user' ] );
+		
 		$subject = "سایت شما با موفقیت تایید شد.";
 		$msg = "وبسایت شما با اطلاعات زیر در سامانه ما تایید شد:";
         include "data/admin/site_mail.php";
